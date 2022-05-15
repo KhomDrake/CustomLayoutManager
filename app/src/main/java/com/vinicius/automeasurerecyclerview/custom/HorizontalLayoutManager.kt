@@ -13,9 +13,11 @@ import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
 import com.vinicius.automeasurerecyclerview.callPrivateFunc
+import kotlin.math.abs
 
 class HorizontalLayoutManager(
-    orientation: Int = HORIZONTAL
+    orientation: Int = HORIZONTAL,
+    private val isInfinite: Boolean = true
 ) : RecyclerView.LayoutManager(),
     ItemTouchHelper.ViewDropHandler,
     RecyclerView.SmoothScroller.ScrollVectorProvider {
@@ -37,7 +39,7 @@ class HorizontalLayoutManager(
      * It is calculated by checking [.getReverseLayout] and View's layout direction.
      * [.onLayoutChildren] is run.
      */
-    var shouldReverseLayout = false
+    private var shouldReverseLayout = false
 
     /**
      * Works the same way as [android.widget.AbsListView.setStackFromBottom] and
@@ -299,7 +301,7 @@ class HorizontalLayoutManager(
         }
         val firstChild = getPosition(getChildAt(0)!!)
         val viewPosition = position - firstChild
-        if (viewPosition >= 0 && viewPosition < childCount) {
+        if (viewPosition in 0 until childCount) {
             val child = getChildAt(viewPosition)
             if (getPosition(child!!) == position) {
                 return child // in pre-layout, this may not match
@@ -499,13 +501,12 @@ class HorizontalLayoutManager(
             }
             var startOffset: Int
             var endOffset: Int
-            val firstLayoutDirection: Int
-            if (anchorInfo.mLayoutFromEnd) {
-                firstLayoutDirection =
-                    if (shouldReverseLayout) LayoutState.ITEM_DIRECTION_TAIL else LayoutState.ITEM_DIRECTION_HEAD
+            val firstLayoutDirection: Int = if (anchorInfo.mLayoutFromEnd) {
+                if (shouldReverseLayout) LayoutState.ITEM_DIRECTION_TAIL
+                else LayoutState.ITEM_DIRECTION_HEAD
             } else {
-                firstLayoutDirection =
-                    if (shouldReverseLayout) LayoutState.ITEM_DIRECTION_HEAD else LayoutState.ITEM_DIRECTION_TAIL
+                if (shouldReverseLayout) LayoutState.ITEM_DIRECTION_HEAD
+                else LayoutState.ITEM_DIRECTION_TAIL
             }
             onAnchorReady(recycler, state, anchorInfo, firstLayoutDirection)
             detachAndScrapAttachedViews(recycler)
@@ -1150,11 +1151,12 @@ class HorizontalLayoutManager(
         layoutState?.mScrollingOffset = scrollingOffset
     }
 
-    fun resolveIsInfinite(): Boolean {
-        return true
+    private fun resolveIsInfinite(): Boolean {
+        return isInfinite || orientationHelper?.mode == View.MeasureSpec.UNSPECIFIED
+                && orientationHelper?.end == 0;
     }
 
-    fun collectPrefetchPositionsForLayoutState(
+    private fun collectPrefetchPositionsForLayoutState(
         state: RecyclerView.State, layoutState: LayoutState,
         layoutPrefetchRegistry: LayoutPrefetchRegistry
     ) {
@@ -1178,10 +1180,10 @@ class HorizontalLayoutManager(
             } else {
                 resolveShouldLayoutReverse()
                 fromEnd = shouldReverseLayout
-                if (pendingScrollPosition == RecyclerView.NO_POSITION) {
-                    anchorPos = if (fromEnd) adapterItemCount - 1 else 0
+                anchorPos = if (pendingScrollPosition == RecyclerView.NO_POSITION) {
+                    if (fromEnd) adapterItemCount - 1 else 0
                 } else {
-                    anchorPos = pendingScrollPosition
+                    pendingScrollPosition
                 }
             }
             val direction =
@@ -1262,12 +1264,12 @@ class HorizontalLayoutManager(
         ensureLayoutState()
         val layoutDirection =
             if (delta > 0) LayoutState.LAYOUT_END else LayoutState.LAYOUT_START
-        val absDelta = Math.abs(delta)
+        val absDelta = abs(delta)
         updateLayoutState(layoutDirection, absDelta, true, state)
         collectPrefetchPositionsForLayoutState(state, layoutState!!, layoutPrefetchRegistry)
     }
 
-    fun scrollBy(delta: Int, recycler: Recycler?, state: RecyclerView.State): Int {
+    private fun scrollBy(delta: Int, recycler: Recycler?, state: RecyclerView.State): Int {
         if (childCount == 0 || delta == 0) {
             return 0
         }
@@ -1502,7 +1504,7 @@ class HorizontalLayoutManager(
         return start - layoutState.mAvailable
     }
 
-    fun layoutChunk(
+    private fun layoutChunk(
         recycler: Recycler?, state: RecyclerView.State?,
         layoutState: LayoutState, result: LayoutChunkResult
     ) {
@@ -1573,10 +1575,6 @@ class HorizontalLayoutManager(
         result.mFocusable = view.hasFocusable()
     }
 
-//    fun shouldMeasureTwice(): Boolean {
-//        return heightMode != View.MeasureSpec.EXACTLY && widthMode != View.MeasureSpec.EXACTLY && hasFlexibleChildInBothOrientations()
-//    }
-
     /**
      * Converts a focusDirection to orientation.
      *
@@ -1596,17 +1594,25 @@ class HorizontalLayoutManager(
             } else {
                 LayoutState.LAYOUT_START
             }
-            View.FOCUS_FORWARD -> if (orientation == VERTICAL) {
-                return LayoutState.LAYOUT_END
-            } else return if (isLayoutRTL()) {
-                LayoutState.LAYOUT_START
-            } else {
-                LayoutState.LAYOUT_END
+            View.FOCUS_FORWARD -> return when {
+                orientation == VERTICAL -> {
+                    LayoutState.LAYOUT_END
+                }
+                isLayoutRTL() -> {
+                    LayoutState.LAYOUT_START
+                }
+                else -> {
+                    LayoutState.LAYOUT_END
+                }
             }
-            View.FOCUS_UP -> return if (orientation == VERTICAL) LayoutState.LAYOUT_START else LayoutState.INVALID_LAYOUT
-            View.FOCUS_DOWN -> return if (orientation == VERTICAL) LayoutState.LAYOUT_END else LayoutState.INVALID_LAYOUT
-            View.FOCUS_LEFT -> return if (orientation == HORIZONTAL) LayoutState.LAYOUT_START else LayoutState.INVALID_LAYOUT
-            View.FOCUS_RIGHT -> return if (orientation == HORIZONTAL) LayoutState.LAYOUT_END else LayoutState.INVALID_LAYOUT
+            View.FOCUS_UP -> return if (orientation == VERTICAL) LayoutState.LAYOUT_START
+                else LayoutState.INVALID_LAYOUT
+            View.FOCUS_DOWN -> return if (orientation == VERTICAL) LayoutState.LAYOUT_END
+                else LayoutState.INVALID_LAYOUT
+            View.FOCUS_LEFT -> return if (orientation == HORIZONTAL) LayoutState.LAYOUT_START
+                else LayoutState.INVALID_LAYOUT
+            View.FOCUS_RIGHT -> return if (orientation == HORIZONTAL) LayoutState.LAYOUT_END
+                else LayoutState.INVALID_LAYOUT
             else -> {
                 return LayoutState.INVALID_LAYOUT
             }
@@ -1664,7 +1670,7 @@ class HorizontalLayoutManager(
      * @param completelyVisible Whether child should be completely visible or not
      * @return The first visible child closest to end of the layout from user's perspective.
      */
-    fun findFirstVisibleChildClosestToEnd(
+    private fun findFirstVisibleChildClosestToEnd(
         completelyVisible: Boolean,
         acceptPartiallyVisible: Boolean
     ): View? {
@@ -1736,7 +1742,7 @@ class HorizontalLayoutManager(
     }
 
     // overridden by GridLayoutManager
-    fun findReferenceChild(
+    private fun findReferenceChild(
         recycler: Recycler?, state: RecyclerView.State?,
         start: Int, end: Int, itemCount: Int
     ): View? {
@@ -1812,7 +1818,10 @@ class HorizontalLayoutManager(
      * @see .findLastVisibleItemPosition
      */
     fun findFirstVisibleItemPosition(): Int {
-        val child = findOneVisibleChild(0, childCount, false, true)
+        val child = findOneVisibleChild(0, childCount,
+            completelyVisible = false,
+            acceptPartiallyVisible = true
+        )
         return child?.let { getPosition(it) } ?: RecyclerView.NO_POSITION
     }
 
@@ -1830,7 +1839,10 @@ class HorizontalLayoutManager(
      * @see .findLastCompletelyVisibleItemPosition
      */
     fun findFirstCompletelyVisibleItemPosition(): Int {
-        val child = findOneVisibleChild(0, childCount, true, false)
+        val child = findOneVisibleChild(0, childCount,
+            completelyVisible = true,
+            acceptPartiallyVisible = false
+        )
         return child?.let { getPosition(it) } ?: RecyclerView.NO_POSITION
     }
 
@@ -1856,7 +1868,10 @@ class HorizontalLayoutManager(
      * @see .findFirstVisibleItemPosition
      */
     fun findLastVisibleItemPosition(): Int {
-        val child = findOneVisibleChild(childCount - 1, -1, false, true)
+        val child = findOneVisibleChild(childCount - 1, -1,
+            completelyVisible = false,
+            acceptPartiallyVisible = true
+        )
         return child?.let { getPosition(it) } ?: RecyclerView.NO_POSITION
     }
 
@@ -1874,7 +1889,10 @@ class HorizontalLayoutManager(
      * @see .findFirstCompletelyVisibleItemPosition
      */
     fun findLastCompletelyVisibleItemPosition(): Int {
-        val child = findOneVisibleChild(childCount - 1, -1, true, false)
+        val child = findOneVisibleChild(childCount - 1, -1,
+            completelyVisible = true,
+            acceptPartiallyVisible = false
+        )
         return child?.let { getPosition(it) } ?: RecyclerView.NO_POSITION
     }
 
@@ -1882,7 +1900,7 @@ class HorizontalLayoutManager(
     // fully visible depending on the arguments provided. Completely invisible children are not
     // acceptable by this method, but could be returned
     // using #findOnePartiallyOrCompletelyInvisibleChild
-    fun findOneVisibleChild(
+    private fun findOneVisibleChild(
         fromIndex: Int, toIndex: Int, completelyVisible: Boolean,
         acceptPartiallyVisible: Boolean
     ): View? {
@@ -1890,7 +1908,7 @@ class HorizontalLayoutManager(
         return null
     }
 
-    fun findOnePartiallyOrCompletelyInvisibleChild(fromIndex: Int, toIndex: Int): View? {
+    private fun findOnePartiallyOrCompletelyInvisibleChild(fromIndex: Int, toIndex: Int): View? {
         ensureLayoutState()
         return null
     }
