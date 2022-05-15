@@ -14,9 +14,11 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
 import com.vinicius.automeasurerecyclerview.callPrivateFunc
 
-class CustomLinearLayoutManager(
+class HorizontalLayoutManager(
     orientation: Int = HORIZONTAL
-) : RecyclerView.LayoutManager(), ItemTouchHelper.ViewDropHandler, RecyclerView.SmoothScroller.ScrollVectorProvider {
+) : RecyclerView.LayoutManager(),
+    ItemTouchHelper.ViewDropHandler,
+    RecyclerView.SmoothScroller.ScrollVectorProvider {
 
     private var orientation: Int = HORIZONTAL
 
@@ -1885,113 +1887,13 @@ class CustomLinearLayoutManager(
         acceptPartiallyVisible: Boolean
     ): View? {
         ensureLayoutState()
-        @ViewBoundsCheck.ViewBounds var preferredBoundsFlag = 0
-        @ViewBoundsCheck.ViewBounds var acceptableBoundsFlag = 0
-        if (completelyVisible) {
-            preferredBoundsFlag =
-                (ViewBoundsCheck.FLAG_CVS_GT_PVS or ViewBoundsCheck.FLAG_CVS_EQ_PVS
-                        or ViewBoundsCheck.FLAG_CVE_LT_PVE or ViewBoundsCheck.FLAG_CVE_EQ_PVE)
-        } else {
-            preferredBoundsFlag = (ViewBoundsCheck.FLAG_CVS_LT_PVE
-                    or ViewBoundsCheck.FLAG_CVE_GT_PVS)
-        }
-        if (acceptPartiallyVisible) {
-            acceptableBoundsFlag = (ViewBoundsCheck.FLAG_CVS_LT_PVE
-                    or ViewBoundsCheck.FLAG_CVE_GT_PVS)
-        }
         return null
-//        return if (orientation == HORIZONTAL) mHorizontalBoundCheck
-//            .findOneViewWithinBoundFlags(
-//                fromIndex, toIndex, preferredBoundsFlag,
-//                acceptableBoundsFlag
-//            ) else mVerticalBoundCheck
-//            .findOneViewWithinBoundFlags(
-//                fromIndex, toIndex, preferredBoundsFlag,
-//                acceptableBoundsFlag
-//            )
     }
 
     fun findOnePartiallyOrCompletelyInvisibleChild(fromIndex: Int, toIndex: Int): View? {
         ensureLayoutState()
-        val next = if (toIndex > fromIndex) 1 else if (toIndex < fromIndex) -1 else 0
-        if (next == 0) {
-            return getChildAt(fromIndex)
-        }
-        @ViewBoundsCheck.ViewBounds var preferredBoundsFlag = 0
-        @ViewBoundsCheck.ViewBounds var acceptableBoundsFlag = 0
-        if (orientationHelper!!.getDecoratedStart(getChildAt(fromIndex)!!)
-            < orientationHelper!!.startAfterPadding
-        ) {
-            preferredBoundsFlag =
-                (ViewBoundsCheck.FLAG_CVS_LT_PVS or ViewBoundsCheck.FLAG_CVE_LT_PVE
-                        or ViewBoundsCheck.FLAG_CVE_GT_PVS)
-            acceptableBoundsFlag = (ViewBoundsCheck.FLAG_CVS_LT_PVS
-                    or ViewBoundsCheck.FLAG_CVE_LT_PVE)
-        } else {
-            preferredBoundsFlag =
-                (ViewBoundsCheck.FLAG_CVE_GT_PVE or ViewBoundsCheck.FLAG_CVS_GT_PVS
-                        or ViewBoundsCheck.FLAG_CVS_LT_PVE)
-            acceptableBoundsFlag = (ViewBoundsCheck.FLAG_CVE_GT_PVE
-                    or ViewBoundsCheck.FLAG_CVS_GT_PVS)
-        }
         return null
-//        return if (orientation == HORIZONTAL) mHorizontalBoundCheck
-//            .findOneViewWithinBoundFlags(
-//                fromIndex, toIndex, preferredBoundsFlag,
-//                acceptableBoundsFlag
-//            ) else mVerticalBoundCheck
-//            .findOneViewWithinBoundFlags(
-//                fromIndex, toIndex, preferredBoundsFlag,
-//                acceptableBoundsFlag
-//            )
     }
-
-//    fun onFocusSearchFailed(
-//        focused: View?, focusDirection: Int,
-//        recycler: Recycler?, state: RecyclerView.State
-//    ): View? {
-//        resolveShouldLayoutReverse()
-//        if (childCount == 0) {
-//            return null
-//        }
-//        val layoutDir = convertFocusDirectionToLayoutDirection(focusDirection)
-//        if (layoutDir == LayoutState.INVALID_LAYOUT) {
-//            return null
-//        }
-//        ensureLayoutState()
-//        val maxScroll =
-//            (MAX_SCROLL_FACTOR * mOrientationHelper!!.totalSpace) as Int
-//        updateLayoutState(layoutDir, maxScroll, false, state)
-//        mLayoutState?.mScrollingOffset = LayoutState.SCROLLING_OFFSET_NaN
-//        mLayoutState?.mRecycle = false
-//
-//        fill(recycler, mLayoutState!!, state, true)
-//
-//        // nextCandidate is the first child view in the layout direction that's partially
-//        // within RV's bounds, i.e. part of it is visible or it's completely invisible but still
-//        // touching RV's bounds. This will be the unfocusable candidate view to become visible onto
-//        // the screen if no focusable views are found in the given layout direction.
-//        val nextCandidate: View?
-//        if (layoutDir == LayoutState.LAYOUT_START) {
-//            nextCandidate = findPartiallyOrCompletelyInvisibleChildClosestToStart()
-//        } else {
-//            nextCandidate = findPartiallyOrCompletelyInvisibleChildClosestToEnd()
-//        }
-//        // nextFocus is meaningful only if it refers to a focusable child, in which case it
-//        // indicates the next view to gain focus.
-//        val nextFocus: View?
-//        if (layoutDir == LayoutState.LAYOUT_START) {
-//            nextFocus = getChildClosestToStart()
-//        } else {
-//            nextFocus = getChildClosestToEnd()
-//        }
-//        if (nextFocus!!.hasFocusable()) {
-//            return if (nextCandidate == null) {
-//                null
-//            } else nextFocus
-//        }
-//        return nextCandidate
-//    }
 
     /**
      * Used for debugging.

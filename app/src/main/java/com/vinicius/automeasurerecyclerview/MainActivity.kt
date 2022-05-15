@@ -4,7 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.recyclerview.widget.PagerSnapHelper
 import br.com.arch.toolkit.delegate.viewProvider
-import com.vinicius.automeasurerecyclerview.custom.CustomLinearLayoutManager
+import com.vinicius.automeasurerecyclerview.custom.HorizontalLayoutManager
 import kotlin.random.Random
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 //            width,
 //            this
 //        )
-        recyclerView.layoutManager = CustomLinearLayoutManager()
+        recyclerView.layoutManager = HorizontalLayoutManager()
         recyclerView.adapter = Adapter(recyclerView, randomText)
         PagerSnapHelper().attachToRecyclerView(recyclerView)
     }
